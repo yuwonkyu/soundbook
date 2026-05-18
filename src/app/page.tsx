@@ -14,16 +14,16 @@ export default function LandingPage() {
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center mb-20">
           <a
-            href="/book/mock-book-1"
+            href="/books"
             className="px-8 py-3 bg-purple-600 hover:bg-purple-500 rounded-lg font-medium transition-colors"
           >
-            샘플 책 읽기
+            내 책 목록
           </a>
           <a
             href="/editor"
             className="px-8 py-3 border border-gray-600 hover:border-gray-400 rounded-lg font-medium transition-colors"
           >
-            에디터 열기
+            책 추가하기
           </a>
         </div>
 
