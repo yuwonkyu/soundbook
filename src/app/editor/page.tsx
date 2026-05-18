@@ -11,6 +11,7 @@ const SAMPLE_BOOKS = [
   { id: 84,   title: "Frankenstein", author: "Mary Shelley" },
   { id: 1661, title: "The Adventures of Sherlock Holmes", author: "Arthur Conan Doyle" },
   { id: 2701, title: "Moby Dick", author: "Herman Melville" },
+  { id: 345,  title: "Dracula", author: "Bram Stoker" },
 ];
 
 export default function EditorIndexPage() {
