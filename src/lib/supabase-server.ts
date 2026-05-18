@@ -1,9 +1,10 @@
 import { createClient } from "@supabase/supabase-js";
 
-// Service role client — server-side only, bypasses RLS for write operations
+// Service role client — server-side only, bypasses RLS for write operations.
+// Only called when isMockMode() is false, so env vars are guaranteed to exist.
 export function createServerClient() {
   return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
+    process.env.NEXT_PUBLIC_SUPABASE_URL ?? "https://placeholder.supabase.co",
+    process.env.SUPABASE_SERVICE_ROLE_KEY ?? "placeholder"
   );
 }
