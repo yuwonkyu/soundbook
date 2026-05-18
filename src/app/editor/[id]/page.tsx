@@ -1,4 +1,6 @@
 import { notFound } from "next/navigation";
+import { isMockMode } from "@/lib/is-mock";
+import { mockStore } from "@/lib/mock-data";
 import { supabase } from "@/lib/supabase";
 import AudioEditor from "@/components/Editor/AudioEditor";
 import type { Book, Scene, AudioMapping } from "@/lib/database.types";
@@ -7,6 +9,15 @@ import type { SceneWithAudio } from "@/components/Reader/SceneBlock";
 type Props = { params: Promise<{ id: string }> };
 
 async function fetchEditorData(id: string) {
+  if (isMockMode()) {
+    const book = mockStore.getBook(id);
+    if (!book) return null;
+    return {
+      book: { id: book.id, title: book.title, author: book.author },
+      scenes: mockStore.getScenesWithAudio(id),
+    };
+  }
+
   const { data: book, error: bookErr } = await supabase
     .from("books")
     .select("id, title, author")
@@ -48,13 +59,11 @@ export default async function EditorPage({ params }: Props) {
 
   if (!data) notFound();
 
-  const { book, scenes } = data;
-
   return (
     <AudioEditor
-      bookId={book.id}
-      bookTitle={book.title}
-      scenes={scenes}
+      bookId={data.book.id}
+      bookTitle={data.book.title}
+      scenes={data.scenes}
     />
   );
 }

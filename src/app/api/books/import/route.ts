@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isMockMode } from "@/lib/is-mock";
+import { MOCK_BOOK } from "@/lib/mock-data";
 import { loadGutenbergBook } from "@/lib/gutenberg";
 import { createServerClient } from "@/lib/supabase-server";
 import type { Book, Scene } from "@/lib/database.types";
@@ -13,9 +15,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "gutenbergId is required" }, { status: 400 });
   }
 
+  if (isMockMode()) {
+    return NextResponse.json({
+      bookId: MOCK_BOOK.id,
+      title: MOCK_BOOK.title,
+      author: MOCK_BOOK.author,
+      sceneCount: 10,
+      mock: true,
+    });
+  }
+
   const db = createServerClient();
 
-  // Return existing book if already imported
   const { data: existing } = await db
     .from("books")
     .select("id")
@@ -26,7 +37,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ bookId: existing.id, cached: true });
   }
 
-  // Fetch and parse from Project Gutenberg
   let parsed;
   try {
     parsed = await loadGutenbergBook(gutenbergId);
@@ -37,7 +47,6 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Insert book
   const { data: book, error: bookErr } = await db
     .from("books")
     .insert({
@@ -56,7 +65,6 @@ export async function POST(req: NextRequest) {
 
   const bookRow = book as Book;
 
-  // Build scenes from chapters/passages
   const scenes: Omit<Scene, "id" | "created_at">[] = parsed.chapters.flatMap(
     (chapter) =>
       chapter.passages.map((text, passageIdx) => ({
@@ -71,13 +79,10 @@ export async function POST(req: NextRequest) {
       }))
   );
 
-  // Insert in batches of 200 to stay within Supabase limits
   const BATCH = 200;
   for (let i = 0; i < scenes.length; i += BATCH) {
     const { error } = await db.from("scenes").insert(scenes.slice(i, i + BATCH));
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
   return NextResponse.json({

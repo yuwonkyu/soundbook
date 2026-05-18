@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isMockMode } from "@/lib/is-mock";
+import { MOCK_BOOK } from "@/lib/mock-data";
 import { analyzeSceneEmotions } from "@/lib/analyze";
 import { createServerClient } from "@/lib/supabase-server";
 import type { Scene } from "@/lib/database.types";
 
-const BATCH_SIZE = 10; // scenes per Claude call
+const BATCH_SIZE = 10;
 
 // POST /api/analyze
 // Body: { bookId: string, limit?: number }
-// Analyzes unanalyzed scenes for a book in batches
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null);
   const bookId = body?.bookId as string | undefined;
@@ -16,10 +17,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "bookId is required" }, { status: 400 });
   }
 
-  const db = createServerClient();
+  if (isMockMode()) {
+    // Mock data is pre-analyzed — nothing to do
+    if (bookId === MOCK_BOOK.id) {
+      return NextResponse.json({ analyzed: 0, message: "All scenes already analyzed (mock)" });
+    }
+    return NextResponse.json({ error: "Book not found" }, { status: 404 });
+  }
 
-  // Only fetch scenes that haven't been analyzed yet
+  const db = createServerClient();
   const limit = Number(body?.limit) || 50;
+
   const { data: scenes, error } = await db
     .from("scenes")
     .select("id, text")
@@ -29,9 +37,7 @@ export async function POST(req: NextRequest) {
     .order("order", { ascending: true })
     .limit(limit);
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   const pending = (scenes ?? []) as Pick<Scene, "id" | "text">[];
 
@@ -41,14 +47,12 @@ export async function POST(req: NextRequest) {
 
   let analyzed = 0;
 
-  // Process in batches to avoid large prompts
   for (let i = 0; i < pending.length; i += BATCH_SIZE) {
     const batch = pending.slice(i, i + BATCH_SIZE);
-    const passages = batch.map((s) => s.text);
 
     let emotions;
     try {
-      emotions = await analyzeSceneEmotions(passages);
+      emotions = await analyzeSceneEmotions(batch.map((s) => s.text));
     } catch (e) {
       return NextResponse.json(
         { error: `Claude analysis failed at batch ${i}: ${String(e)}`, analyzed },
@@ -56,7 +60,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Update each scene with the returned emotions
     const updates = batch.map((scene, idx) => {
       const em = emotions[idx];
       if (!em) return Promise.resolve();

@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isMockMode } from "@/lib/is-mock";
+import { mockStore } from "@/lib/mock-data";
 import { createServerClient } from "@/lib/supabase-server";
 
 // PATCH /api/audio-mappings
@@ -10,6 +12,20 @@ export async function PATCH(req: NextRequest) {
 
   if (!sceneId || !freesoundId || !name || !previewUrl) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+  }
+
+  if (isMockMode()) {
+    const mapping = mockStore.upsertMapping({
+      scene_id: sceneId,
+      freesound_id: Number(freesoundId),
+      name,
+      preview_url: previewUrl,
+      duration: Number(duration ?? 0),
+      license: license ?? "",
+      query: query ?? "",
+      is_manual: true,
+    });
+    return NextResponse.json({ mapping });
   }
 
   const db = createServerClient();
@@ -40,6 +56,11 @@ export async function DELETE(req: NextRequest) {
   const sceneId = req.nextUrl.searchParams.get("sceneId");
   if (!sceneId) {
     return NextResponse.json({ error: "sceneId is required" }, { status: 400 });
+  }
+
+  if (isMockMode()) {
+    mockStore.deleteMapping(sceneId);
+    return NextResponse.json({ ok: true });
   }
 
   const db = createServerClient();

@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isMockMode } from "@/lib/is-mock";
+import { mockStore } from "@/lib/mock-data";
 import { supabase } from "@/lib/supabase";
 import type { Book, Scene, AudioMapping } from "@/lib/database.types";
 
@@ -10,6 +12,12 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
+
+  if (isMockMode()) {
+    const book = mockStore.getBook(id);
+    if (!book) return NextResponse.json({ error: "Book not found" }, { status: 404 });
+    return NextResponse.json({ book, scenes: mockStore.getScenesWithAudio(id) });
+  }
 
   const { data: book, error: bookErr } = await supabase
     .from("books")
@@ -33,9 +41,8 @@ export async function GET(
   }
 
   const sceneList = (scenes ?? []) as Scene[];
-
-  // Fetch audio mappings for all scenes in one query
   const sceneIds = sceneList.map((s) => s.id);
+
   const { data: mappings } = await supabase
     .from("audio_mappings")
     .select("*")
@@ -50,8 +57,5 @@ export async function GET(
     audio: mappingByScene.get(s.id) ?? null,
   }));
 
-  return NextResponse.json({
-    book: book as Book,
-    scenes: scenesWithAudio,
-  });
+  return NextResponse.json({ book: book as Book, scenes: scenesWithAudio });
 }

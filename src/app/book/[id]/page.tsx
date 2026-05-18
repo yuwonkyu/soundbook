@@ -1,4 +1,6 @@
 import { notFound } from "next/navigation";
+import { isMockMode } from "@/lib/is-mock";
+import { mockStore } from "@/lib/mock-data";
 import { supabase } from "@/lib/supabase";
 import BookReader from "@/components/Reader/BookReader";
 import type { Book, Scene, AudioMapping } from "@/lib/database.types";
@@ -7,6 +9,12 @@ import type { SceneWithAudio } from "@/components/Reader/SceneBlock";
 type Props = { params: Promise<{ id: string }> };
 
 async function fetchBookData(id: string) {
+  if (isMockMode()) {
+    const book = mockStore.getBook(id);
+    if (!book) return null;
+    return { book, scenes: mockStore.getScenesWithAudio(id) };
+  }
+
   const { data: book, error: bookErr } = await supabase
     .from("books")
     .select("id, gutenberg_id, title, author, language, created_at")
