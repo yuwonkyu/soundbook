@@ -1,7 +1,6 @@
 "use client";
 
 import { useRef, useState, useEffect, useCallback } from "react";
-import EmotionBadge from "./EmotionBadge";
 import type { SceneWithAudio } from "./SceneBlock";
 
 interface Props {
@@ -164,14 +163,6 @@ export default function BookReader({ bookId, bookTitle, bookAuthor, scenes }: Pr
             className={`flex-1 overflow-y-auto px-4 pb-6 transition-opacity duration-150 ${animDir ? "opacity-0" : "opacity-100"}`}
           >
             <div className="max-w-xl mx-auto">
-              {scene.emotion && (
-                <div className="flex items-center gap-2 mb-4">
-                  <EmotionBadge emotion={scene.emotion} intensity={scene.intensity ?? 0} />
-                  {scene.audio && (
-                    <span className="text-xs text-gray-600 truncate max-w-xs">♪ {scene.audio.name}</span>
-                  )}
-                </div>
-              )}
               <p className="text-gray-200 leading-loose text-[15px]">{scene.text}</p>
             </div>
           </div>
