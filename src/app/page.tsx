@@ -20,7 +20,7 @@ export default function LandingPage() {
             샘플 책 읽기
           </a>
           <a
-            href="/editor/mock-book-1"
+            href="/editor"
             className="px-8 py-3 border border-gray-600 hover:border-gray-400 rounded-lg font-medium transition-colors"
           >
             에디터 열기
